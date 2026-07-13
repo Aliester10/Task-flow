@@ -51,7 +51,20 @@ export const TaskForm: React.FC<TaskFormProps> = ({ project, task, defaultStatus
     },
   });
 
-  useEffect(() => { if (task) reset({ ...task, dueDate: task.dueDate?.split('T')[0] || '', labels: task.labels.join(', '), sprintId: task.sprintId || '', assigneeId: task.assigneeId || '' }); }, [task, reset]);
+  useEffect(() => { 
+    if (task) {
+      reset({ 
+        title: task.title,
+        description: task.description || undefined,
+        status: task.status,
+        priority: task.priority,
+        dueDate: task.dueDate?.split('T')[0] || undefined, 
+        labels: task.labels.join(', '), 
+        sprintId: task.sprintId || undefined, 
+        assigneeId: task.assigneeId || undefined 
+      }); 
+    } 
+  }, [task, reset]);
 
   const handleFormSubmit = async (data: FormData) => {
     await onSubmit({

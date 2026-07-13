@@ -36,6 +36,7 @@ export interface Project {
   doneTasks?: number;
   overdueTasks?: number;
   _count?: { tasks: number; members?: number };
+  sprints?: Sprint[];
 }
 
 export interface Sprint {

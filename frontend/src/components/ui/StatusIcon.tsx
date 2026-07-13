@@ -126,14 +126,14 @@ export const PriorityIcon: React.FC<{ priority: Priority; size?: number; classNa
 
 // ── Type Icons (Story, Bug, Task, Sub-task) ────────────────────────────────
 
-export const TaskTypeIcon: React.FC<{ type?: 'task' | 'bug' | 'story' | 'subtask'; size?: number }> = ({
-  type = 'task', size = 14,
+export const TaskTypeIcon: React.FC<{ type?: 'task' | 'bug' | 'story' | 'subtask'; size?: number; className?: string }> = ({
+  type = 'task', size = 14, className = '',
 }) => {
   const s = size;
   switch (type) {
     case 'bug':
       return (
-        <svg width={s} height={s} viewBox="0 0 16 16" fill="none" aria-label="Bug">
+        <svg width={s} height={s} viewBox="0 0 16 16" fill="none" aria-label="Bug" className={className}>
           <circle cx="8" cy="8" r="7" fill="#FF5630" />
           <path d="M6 6.5C6 5.4 6.9 4.5 8 4.5C9.1 4.5 10 5.4 10 6.5V9.5C10 10.6 9.1 11.5 8 11.5C6.9 11.5 6 10.6 6 9.5V6.5Z" fill="white" />
           <circle cx="8" cy="8" r="1.5" fill="#FF5630" />
@@ -141,21 +141,21 @@ export const TaskTypeIcon: React.FC<{ type?: 'task' | 'bug' | 'story' | 'subtask
       );
     case 'story':
       return (
-        <svg width={s} height={s} viewBox="0 0 16 16" fill="none" aria-label="Story">
+        <svg width={s} height={s} viewBox="0 0 16 16" fill="none" aria-label="Story" className={className}>
           <rect width="16" height="16" rx="3" fill="#63BA3C" />
           <path d="M4 5H12M4 8H10M4 11H8" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
       );
     case 'subtask':
       return (
-        <svg width={s} height={s} viewBox="0 0 16 16" fill="none" aria-label="Subtask">
+        <svg width={s} height={s} viewBox="0 0 16 16" fill="none" aria-label="Subtask" className={className}>
           <rect x="1" y="1" width="14" height="14" rx="3" fill="#2684FF" opacity="0.2" stroke="#2684FF" strokeWidth="1.2" />
           <path d="M5 8L7.5 10.5L11 6" stroke="#2684FF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
     default: // task
       return (
-        <svg width={s} height={s} viewBox="0 0 16 16" fill="none" aria-label="Task">
+        <svg width={s} height={s} viewBox="0 0 16 16" fill="none" aria-label="Task" className={className}>
           <rect width="16" height="16" rx="3" fill="#2684FF" />
           <path d="M4.5 8L7 10.5L11.5 5.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
