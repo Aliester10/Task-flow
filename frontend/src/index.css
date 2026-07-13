@@ -1,0 +1,198 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --sidebar-width: 240px;
+    --neo-border: 2.5px;
+    --neo-shadow: 4px 4px 0px 0px #1a1a1a;
+    --neo-radius: 8px;
+  }
+  * { @apply box-border; }
+  html { @apply scroll-smooth; }
+  body {
+    @apply bg-[#FFFDF5] text-gray-900 font-sans antialiased text-sm;
+    font-feature-settings: "cv11", "ss01";
+  }
+  ::-webkit-scrollbar { @apply w-2 h-2; }
+  ::-webkit-scrollbar-track { @apply bg-neo-cream; }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-800 rounded-none;
+    border: 1.5px solid #1a1a1a;
+  }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-gray-700; }
+}
+
+@layer components {
+  /* ═══════════════════════════════════════════════
+     BUTTONS — Neobrutalism Style
+     ═══════════════════════════════════════════════ */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 font-bold
+           transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900
+           select-none whitespace-nowrap
+           border-3 border-gray-900 rounded-neo;
+    box-shadow: var(--neo-shadow);
+  }
+  .btn:hover:not(:disabled) {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0px 0px #1a1a1a;
+  }
+  .btn:active:not(:disabled) {
+    transform: translate(4px, 4px);
+    box-shadow: 0px 0px 0px 0px #1a1a1a;
+  }
+
+  .btn-xs  { @apply btn text-xs px-2.5 py-1.5; }
+  .btn-sm  { @apply btn text-xs px-3 py-2; }
+  .btn-md  { @apply btn text-sm px-5 py-2.5; }
+  .btn-lg  { @apply btn text-sm px-6 py-3; }
+
+  .btn-primary {
+    @apply bg-neo-yellow text-gray-900 hover:bg-yellow-300;
+  }
+  .btn-secondary {
+    @apply bg-white text-gray-900 hover:bg-gray-50;
+  }
+  .btn-ghost {
+    @apply bg-transparent text-gray-700 border-transparent hover:bg-neo-cream hover:border-gray-900;
+    box-shadow: none;
+  }
+  .btn-ghost:hover:not(:disabled) {
+    box-shadow: 2px 2px 0px 0px #1a1a1a;
+    transform: none;
+  }
+  .btn-danger {
+    @apply bg-neo-red text-white hover:bg-red-600;
+  }
+  .btn-success {
+    @apply bg-neo-lime text-gray-900 hover:bg-lime-300;
+  }
+
+  /* ═══════════════════════════════════════════════
+     INPUTS — Neobrutalism Style
+     ═══════════════════════════════════════════════ */
+  .input {
+    @apply w-full px-4 py-2.5 bg-white text-sm text-gray-900
+           placeholder-gray-400
+           border-3 border-gray-900 rounded-neo
+           focus:outline-none focus:ring-0
+           transition-all duration-150;
+    box-shadow: 3px 3px 0px 0px #1a1a1a;
+  }
+  .input:focus {
+    box-shadow: 2px 2px 0px 0px #FFE156;
+    border-color: #1a1a1a;
+  }
+  .input-sm { @apply input py-1.5 text-xs; }
+  .label {
+    @apply block text-xs font-bold text-gray-900 mb-1.5 tracking-wide uppercase;
+  }
+
+  /* ═══════════════════════════════════════════════
+     CARDS — Neobrutalism Style
+     ═══════════════════════════════════════════════ */
+  .card {
+    @apply bg-white rounded-neo border-3 border-gray-900;
+    box-shadow: var(--neo-shadow);
+  }
+  .card-hover {
+    @apply card transition-all duration-200 cursor-pointer;
+  }
+  .card-hover:hover {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0px 0px #1a1a1a;
+  }
+
+  /* ═══════════════════════════════════════════════
+     BADGES — Neobrutalism Style
+     ═══════════════════════════════════════════════ */
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-neo text-xs font-bold
+           border-2 border-gray-900;
+    box-shadow: 2px 2px 0px 0px #1a1a1a;
+  }
+  .badge-sm {
+    @apply inline-flex items-center px-2 py-0.5 rounded-neo text-[10px] font-bold
+           border-2 border-gray-900;
+    box-shadow: 1px 1px 0px 0px #1a1a1a;
+  }
+
+  /* ═══════════════════════════════════════════════
+     MISC
+     ═══════════════════════════════════════════════ */
+  .glass { @apply bg-white/90 backdrop-blur-sm; }
+  .divider { @apply border-t-3 border-gray-900 my-4; }
+
+  /* Neo utility classes */
+  .neo-border { @apply border-3 border-gray-900; }
+  .neo-shadow { box-shadow: var(--neo-shadow); }
+  .neo-tag {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-neo text-xs font-bold
+           border-2 border-gray-900 bg-neo-yellow;
+    box-shadow: 2px 2px 0px 0px #1a1a1a;
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   CUSTOM ANIMATIONS
+   ═══════════════════════════════════════════════ */
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-slide-in-right { animation: slideInRight 0.25s ease-out; }
+.animate-slide-in-up    { animation: slideInUp 0.25s ease-out; }
+.animate-fade-in        { animation: fadeIn 0.2s ease-out; }
+.animate-scale-in       { animation: scaleIn 0.2s ease-out; }
+
+/* Skeleton loading — neobrutalism */
+.skeleton {
+  @apply border-2 border-gray-900 rounded-neo;
+  background: repeating-linear-gradient(
+    -45deg,
+    #FFF8E7,
+    #FFF8E7 10px,
+    #FFE156 10px,
+    #FFE156 20px
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite linear;
+}
+
+/* Priority dot indicator */
+.priority-dot::before {
+  content: '';
+  @apply inline-block w-2.5 h-2.5 rounded-none mr-1.5 border-2 border-gray-900;
+}
+
+/* ═══════════════════════════════════════════════
+   DECORATIVE SHAPES (optional neobrutalism flair)
+   ═══════════════════════════════════════════════ */
+.neo-shape-circle {
+  @apply w-8 h-8 rounded-full border-3 border-gray-900 bg-neo-pink;
+  box-shadow: 2px 2px 0px 0px #1a1a1a;
+}
+.neo-shape-square {
+  @apply w-6 h-6 border-3 border-gray-900 bg-neo-lime rotate-12;
+  box-shadow: 2px 2px 0px 0px #1a1a1a;
+}
