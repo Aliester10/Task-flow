@@ -1,0 +1,23 @@
+[
+  {
+    "title": "[QA] Test Fitur Login dengan Kredensial Valid",
+    "description": "Langkah-langkah:\n1. Buka halaman login\n2. Masukkan email dan password yang valid\n3. Klik tombol Login\n\nEkspektasi: Pengguna berhasil diarahkan ke halaman Dashboard.",
+    "priority": "HIGH",
+    "status": "TODO",
+    "labels": ["QA", "Login"]
+  },
+  {
+    "title": "[QA] Test Fitur Login dengan Kredensial Salah",
+    "description": "Langkah-langkah:\n1. Buka halaman login\n2. Masukkan email yang salah atau password salah\n3. Klik tombol Login\n\nEkspektasi: Muncul pesan error 'Kredensial tidak valid' dan pengguna tetap di halaman login.",
+    "priority": "MEDIUM",
+    "status": "TODO",
+    "labels": ["QA", "Login"]
+  },
+  {
+    "title": "[QA] Pembuatan Task Baru Tanpa Judul",
+    "description": "Langkah-langkah:\n1. Buka modal tambah task\n2. Kosongkan field Judul\n3. Klik Simpan\n\nEkspektasi: Form tidak dapat disubmit dan muncul validasi error di bawah input Judul.",
+    "priority": "LOW",
+    "status": "BACKLOG",
+    "labels": ["QA", "Task"]
+  }
+]

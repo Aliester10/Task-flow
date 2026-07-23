@@ -11,6 +11,7 @@ interface TaskState {
   createTask: (projectId: string, data: Parameters<typeof taskService.create>[1]) => Promise<Task>;
   updateTask: (projectId: string, taskId: string, data: Parameters<typeof taskService.update>[2]) => Promise<void>;
   deleteTask: (projectId: string, taskId: string) => Promise<void>;
+  importTasks: (projectId: string, tasks: any[]) => Promise<number>;
   moveTask: (projectId: string, taskId: string, newStatus: TaskStatus, newOrder: number) => Promise<void>;
   updateTaskLocal: (taskId: string, data: Partial<Task>) => void;
   setCurrentTask: (task: Task | null) => void;
@@ -58,6 +59,14 @@ export const useTaskStore = create<TaskState>((set) => ({
   deleteTask: async (projectId, taskId) => {
     await taskService.delete(projectId, taskId);
     set((s) => ({ tasks: s.tasks.filter((t) => t.id !== taskId) }));
+  },
+
+  importTasks: async (projectId, tasks) => {
+    const count = await taskService.importBulk(projectId, tasks);
+    // Reload tasks
+    const updatedTasks = await taskService.getAll(projectId);
+    set({ tasks: updatedTasks });
+    return count;
   },
 
   moveTask: async (projectId, taskId, newStatus, newOrder) => {

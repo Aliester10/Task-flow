@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Settings, Users, LayoutGrid, List, Plus,
+  Settings, Users, LayoutGrid, List, Plus, Upload,
   UserPlus, Trash2, Archive, MoreHorizontal, BarChart2, Zap,
 } from 'lucide-react';
 import { useProjectStore } from '../store/project.store';
@@ -28,7 +28,7 @@ const ProjectDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentProject, fetchProject, updateProject, deleteProject, archiveProject } = useProjectStore();
-  const { tasks, fetchTasks, createTask, updateTask, deleteTask } = useTaskStore();
+  const { tasks, fetchTasks, createTask, updateTask, deleteTask, importTasks } = useTaskStore();
   const { user } = useAuthStore();
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('summary');
@@ -45,6 +45,7 @@ const ProjectDetailPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -112,6 +113,32 @@ const ProjectDetailPage: React.FC = () => {
     } finally { setDeleting(false); }
   };
 
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const text = event.target?.result as string;
+        const json = JSON.parse(text);
+        if (Array.isArray(json)) {
+          setSaving(true);
+          await importTasks(id!, json);
+          // Optional: Add a success toast here
+        }
+      } catch (err) {
+        console.error('Failed to parse JSON', err);
+        alert('Gagal membaca file JSON. Pastikan formatnya benar.');
+      } finally {
+        setSaving(false);
+        // Reset file input
+        e.target.value = '';
+      }
+    };
+    reader.readAsText(file);
+  };
+
   const boardTasks = tasks.filter((t) => t.status !== 'BACKLOG');
   const backlogTasks = tasks.filter((t) => t.status === 'BACKLOG');
 
@@ -146,6 +173,10 @@ const ProjectDetailPage: React.FC = () => {
                 <Avatar key={m.id} name={m.user.name} avatarUrl={m.user.avatarUrl} size="xs" className="ring-2 ring-white" />
               ))}
             </div>
+
+            <button onClick={() => setShowImportModal(true)} className="btn-md btn-secondary flex items-center gap-1.5" title="Import Testcase dari JSON">
+              <Upload className="w-4 h-4" /> Import
+            </button>
 
             <button onClick={() => handleAddTask()} className="btn-md btn-primary">
               <Plus className="w-4 h-4" /> Task
@@ -300,6 +331,48 @@ const ProjectDetailPage: React.FC = () => {
             <button onClick={handleInvite} className="btn-md btn-primary flex-1" disabled={inviting || !inviteEmail}>
               {inviting ? 'Mengundang...' : 'Undang'}
             </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Import Modal */}
+      <Modal isOpen={showImportModal} onClose={() => setShowImportModal(false)} title="Import Testcase">
+        <div className="p-6">
+          <p className="text-sm text-gray-700 mb-4 font-medium">
+            Unggah file JSON untuk mengimpor banyak testcase sekaligus.
+          </p>
+          
+          <div className="bg-neo-cream border-2 border-gray-900 p-4 rounded-neo mb-6" style={{ boxShadow: '2px 2px 0px 0px #1a1a1a' }}>
+            <h4 className="font-bold text-gray-900 text-sm mb-2">Contoh Format JSON:</h4>
+            <pre className="text-xs bg-white p-3 border-2 border-gray-900 rounded overflow-x-auto text-gray-800">
+{`[
+  {
+    "title": "[QA] Uji Coba Form",
+    "description": "Langkah:\\n1. Buka form\\n2. Isi form",
+    "priority": "HIGH",
+    "status": "TODO",
+    "labels": ["QA", "Testing"]
+  }
+]`}
+            </pre>
+            <div className="mt-3 text-xs text-gray-600 font-medium">
+              <p>• <b>title</b> (Wajib): Judul dari task/testcase.</p>
+              <p>• <b>description</b> (Opsional): Langkah pengujian & hasil.</p>
+              <p>• <b>priority</b> (Opsional): LOW, MEDIUM, HIGH, URGENT.</p>
+              <p>• <b>status</b> (Opsional): BACKLOG, TODO, IN_PROGRESS, dll.</p>
+              <p>• <b>labels</b> (Opsional): Daftar label dalam Array.</p>
+            </div>
+            <a href="/testcase-template.json" download className="text-xs font-bold text-neo-blue underline mt-3 inline-block hover:opacity-80">
+              Unduh Template JSON Lengkap
+            </a>
+          </div>
+
+          <div className="flex gap-3">
+            <button onClick={() => setShowImportModal(false)} className="btn-md btn-secondary flex-1">Batal</button>
+            <label className="btn-md btn-primary flex-1 text-center cursor-pointer">
+              {saving ? 'Mengimpor...' : 'Pilih File & Import'}
+              <input type="file" accept=".json" hidden onChange={(e) => { handleImport(e); setShowImportModal(false); }} disabled={saving} />
+            </label>
           </div>
         </div>
       </Modal>

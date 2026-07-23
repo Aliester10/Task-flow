@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   DndContext, DragEndEvent, DragOverEvent, DragStartEvent,
-  DragOverlay, closestCorners, PointerSensor, useSensor, useSensors,
+  DragOverlay, closestCenter, pointerWithin, PointerSensor, useSensor, useSensors,
 } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
 import { Task, TaskStatus } from '../../types';
@@ -90,7 +90,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ projectId, tasks, onTa
   };
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
       <div className="flex gap-3 overflow-x-auto pb-4 px-1 min-h-[500px] group">
         {KANBAN_COLUMNS.map((status) => (
           <KanbanColumn

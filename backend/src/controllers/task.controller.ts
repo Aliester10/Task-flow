@@ -201,6 +201,71 @@ export const createTask = async (req: AuthRequest, res: Response): Promise<void>
   }
 };
 
+// POST /projects/:projectId/tasks/bulk
+export const importTasks = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { projectId } = req.params;
+    const member = await prisma.projectMember.findUnique({
+      where: { projectId_userId: { projectId, userId: req.user!.id } },
+    });
+    if (!member) {
+      res.status(403).json({ success: false, error: 'Akses ditolak.' });
+      return;
+    }
+
+    const parsed = z.array(taskSchema).safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: 'Validasi gagal', details: parsed.error.flatten().fieldErrors });
+      return;
+    }
+
+    const tasksData = parsed.data;
+
+    const lastTask = await prisma.task.findFirst({
+      where: { projectId, status: 'TODO' },
+      orderBy: { order: 'desc' },
+    });
+
+    let currentOrder = (lastTask?.order ?? -1) + 1;
+
+    const tasksToCreate = tasksData.map((task) => ({
+      title: task.title,
+      description: task.description || null,
+      assigneeId: task.assigneeId || null,
+      status: task.status || 'TODO',
+      priority: task.priority || 'MEDIUM',
+      dueDate: task.dueDate ? new Date(task.dueDate) : null,
+      labels: task.labels || [],
+      sprintId: task.sprintId || null,
+      projectId,
+      order: currentOrder++,
+    }));
+
+    // We can't use createMany and get the IDs back in Prisma SQLite (though we are on Postgres). 
+    // To support activityLogs for each, we create them in a transaction.
+    const createdTasks = await prisma.$transaction(
+      tasksToCreate.map((taskData) => prisma.task.create({ data: taskData }))
+    );
+
+    // Create activity logs
+    await prisma.activityLog.createMany({
+      data: createdTasks.map((task) => ({
+        taskId: task.id,
+        userId: req.user!.id,
+        action: 'created',
+        newValue: task.status,
+      })),
+    });
+
+    await invalidateProjectCache(projectId);
+
+    res.status(201).json({ success: true, count: createdTasks.length });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Terjadi kesalahan server saat import.' });
+  }
+};
+
 // PUT /projects/:projectId/tasks/:taskId
 export const updateTask = async (req: AuthRequest, res: Response): Promise<void> => {
   try {

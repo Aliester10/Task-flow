@@ -18,6 +18,10 @@ export const taskService = {
     const res = await api.post<{ success: boolean; data: Task }>(`/projects/${projectId}/tasks`, data);
     return res.data.data!;
   },
+  importBulk: async (projectId: string, tasks: any[]) => {
+    const res = await api.post<{ success: boolean; count: number }>(`/projects/${projectId}/tasks/bulk`, tasks);
+    return res.data.count;
+  },
   update: async (projectId: string, taskId: string, data: Partial<{
     title: string; description: string | null; assigneeId: string | null;
     status: TaskStatus; priority: Priority; dueDate: string | null;
