@@ -14,21 +14,19 @@ jobs:
       - name: 📥 Tarik kode terbaru dari GitHub
         uses: actions/checkout@v4
 
-      - name: 🚀 Eksekusi deploy di server VPS
+      - name: 🚀 Build & deploy langsung di server VPS
         run: |
-          # 1. Pindah ke direktori aplikasi di server
+          # 1. Salin semua file kode dari Runner ke folder rilis VPS
+          rsync -a --exclude='.git' "${{ github.workspace }}/" /srv/docker/apps/taskflow/
+
+          # 2. Pindah ke folder rilis VPS
           cd /srv/docker/apps/taskflow
 
-          # 2. Timpa docker-compose.yml terbaru dari GitHub ke folder server
-          #    (kode/Dockerfile sudah ditarik Runner ke folder workspace-nya sendiri)
-          cp "${{ github.workspace }}/docker-compose.yml" /srv/docker/apps/taskflow/
-
-          # 3. Tarik image terbaru dari registry (GHCR) dan restart container
-          echo "Menyalakan aplikasi TaskFlow..."
-          docker compose pull
-          docker compose up -d --remove-orphans
+          # 3. Rakit ulang image secara lokal dan jalankan container
+          echo "Merakit (build) dan menyalakan aplikasi TaskFlow..."
+          docker compose up -d --build --remove-orphans
 
           # 4. Beri jeda untuk healthcheck, lalu verifikasi container berjalan
           echo "Deployment berhasil! Menunggu healthcheck..."
-          sleep 10
+          sleep 15
           docker ps | grep taskflow
