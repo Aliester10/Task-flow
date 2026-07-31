@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import { TaskStatus } from '@prisma/client';
 import prisma from '../prisma/client';
 import { AuthRequest } from '../types/index';
 import { cacheService } from '../utils/cache';
@@ -54,7 +55,7 @@ export const getDashboard = async (req: AuthRequest, res: Response): Promise<voi
       // Stats
       prisma.task.count({ where: { projectId: { in: projectIds } } }),
       prisma.task.count({
-        where: { projectId: { in: projectIds }, assigneeId: userId, status: { in: ['TODO', 'IN_PROGRESS', 'REVIEW'] } },
+        where: { projectId: { in: projectIds }, status: 'IN_PROGRESS' },
       }),
       prisma.task.count({
         where: { projectId: { in: projectIds }, dueDate: { lt: now }, status: { notIn: ['DONE'] } },
@@ -62,16 +63,29 @@ export const getDashboard = async (req: AuthRequest, res: Response): Promise<voi
       prisma.task.count({ where: { projectId: { in: projectIds }, status: 'DONE' } }),
       prisma.project.count({ where: { id: { in: projectIds }, isArchived: false } }),
 
-      // Kanban preview — ambil max 20 task assigned ke user, grouping di JS setelah itu
-      prisma.task.findMany({
-        where: { projectId: { in: projectIds }, assigneeId: userId },
-        select: {
-          id: true, title: true, status: true, priority: true, projectId: true,
-          assignee: { select: { id: true, name: true, avatarUrl: true } },
-        },
-        orderBy: [{ priority: 'desc' }, { updatedAt: 'desc' }],
-        take: 20,
-      }),
+      // Kanban preview — max 4 task per kolom, diambil per-status langsung dari DB
+      // agar tiap kolom tetap terisi walau total task banyak (BACKLOG digabung ke TODO)
+      Promise.all(
+        (
+          [
+            ['BACKLOG', 'TODO'],
+            ['IN_PROGRESS'],
+            ['BLOCKED'],
+            ['REVIEW'],
+            ['DONE'],
+          ] as TaskStatus[][]
+        ).map((statuses) =>
+          prisma.task.findMany({
+            where: { projectId: { in: projectIds }, status: { in: statuses } },
+            select: {
+              id: true, title: true, status: true, priority: true, projectId: true,
+              assignee: { select: { id: true, name: true, avatarUrl: true } },
+            },
+            orderBy: [{ priority: 'desc' }, { updatedAt: 'desc' }],
+            take: 4,
+          })
+        )
+      ),
 
       // Active sprint — 1 query, sudah include count tasks via _count
       prisma.sprint.findFirst({
@@ -160,13 +174,14 @@ export const getDashboard = async (req: AuthRequest, res: Response): Promise<voi
       };
     }
 
-    // 5. Group kanban tasks di JS (sudah limit 20 dari DB)
+    // 5. Susun kanban dari hasil query per-kolom (urutan sama dgn array statuses di atas)
+    const [todoCol, inProgressCol, blockedCol, reviewCol, doneCol] = kanbanTasksRaw;
     const kanbanTasks = {
-      TODO: kanbanTasksRaw.filter((t) => t.status === 'BACKLOG' || t.status === 'TODO').slice(0, 4),
-      IN_PROGRESS: kanbanTasksRaw.filter((t) => t.status === 'IN_PROGRESS').slice(0, 4),
-      BLOCKED: kanbanTasksRaw.filter((t) => t.status === 'BLOCKED').slice(0, 4),
-      REVIEW: kanbanTasksRaw.filter((t) => t.status === 'REVIEW').slice(0, 4),
-      DONE: kanbanTasksRaw.filter((t) => t.status === 'DONE').slice(0, 4),
+      TODO: todoCol,
+      IN_PROGRESS: inProgressCol,
+      BLOCKED: blockedCol,
+      REVIEW: reviewCol,
+      DONE: doneCol,
     };
 
     const responseData = {
