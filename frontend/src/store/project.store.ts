@@ -6,6 +6,7 @@ interface ProjectState {
   projects: Project[];
   currentProject: Project | null;
   isLoading: boolean;
+  lastFetchedAt: number | null;
   fetchProjects: () => Promise<void>;
   fetchProject: (id: string) => Promise<void>;
   createProject: (data: { name: string; description?: string; startDate?: string | null; endDate?: string | null }) => Promise<Project>;
@@ -19,12 +20,16 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   projects: [],
   currentProject: null,
   isLoading: false,
+  lastFetchedAt: null,
 
   fetchProjects: async () => {
+    const STALE_AFTER = 5 * 60 * 1000; // 5 menit
+    if (get().lastFetchedAt && Date.now() - get().lastFetchedAt! < STALE_AFTER) return;
+
     set({ isLoading: true });
     try {
       const projects = await projectService.getAll();
-      set({ projects, isLoading: false });
+      set({ projects, isLoading: false, lastFetchedAt: Date.now() });
     } catch {
       set({ isLoading: false });
     }

@@ -35,8 +35,6 @@ export const cacheService = {
   }
 };
 
-import prisma from '../prisma/client';
-
 // Helper functions for common cache invalidations
 export const invalidateUserCache = (userId: string) => {
   cacheService.del(`dashboard_${userId}`);
@@ -45,16 +43,9 @@ export const invalidateUserCache = (userId: string) => {
 
 export const invalidateProjectCache = async (projectId: string) => {
   try {
-    const members = await prisma.projectMember.findMany({ 
-      where: { projectId }, 
-      select: { userId: true } 
-    });
-    
-    members.forEach(m => {
-      cacheService.del(`dashboard_${m.userId}`);
-      cacheService.del(`projects_${m.userId}`);
-      cacheService.del(`project_${projectId}_${m.userId}`);
-    });
+    cacheService.delByPrefix(`project_${projectId}`);
+    cacheService.delByPrefix(`dashboard_`);
+    cacheService.delByPrefix(`projects_`);
   } catch (err) {
     console.error('Failed to invalidate project cache', err);
   }
