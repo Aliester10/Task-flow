@@ -5,8 +5,8 @@
 # lewat Traefik. Image ditarik dari ghcr.io (dibangun GitHub Actions).
 #
 # DATABASE: TaskFlow MENUMPANG PostgreSQL utama server (bukan container sendiri).
-# Backend terhubung ke Postgres utama lewat network bersama (${DB_NETWORK}).
-# Isi DB_HOST, DB_NETWORK, POSTGRES_* di file .env (lihat .env.example).
+# Postgres utama berada di network `web`; backend di-attach ke `web` agar bisa
+# mengaksesnya via host `postgres`. Isi DB_HOST, POSTGRES_* di .env (lihat .env.example).
 #
 # Untuk dev lokal gunakan docker-compose.override.yml (menyediakan Postgres lokal).
 # ═══════════════════════════════════════════════════════════════════════════
@@ -14,7 +14,7 @@
 services:
   # ─── Backend: Express + Prisma + Socket.IO (internal) ──────────────────────
   # Tidak diekspos ke Traefik — diakses via reverse proxy nginx di service frontend.
-  # Terhubung ke 2 network: `internal` (ke frontend) & `database` (ke Postgres utama).
+  # Terhubung ke 2 network: `internal` (ke frontend) & `web` (ke Postgres utama `postgres`).
   backend:
     image: ghcr.io/aliester/taskflow-backend:latest
     build: ./backend
@@ -51,7 +51,7 @@ services:
       start_period: 20s
     networks:
       - internal
-      - database
+      - web
 
   # ─── Frontend: Nginx (SPA + reverse proxy /api & /socket.io) ───────────────
   # Satu-satunya service yang menghadap publik → terhubung ke network `web` (Traefik).
@@ -93,14 +93,10 @@ services:
       - internal
 
 networks:
-  # Network publik milik Traefik (sudah dibuat di VPS). Lokal: docker network create web
+  # Network publik Traefik + tempat PostgreSQL utama (`postgres`) berada.
+  # Backend & frontend join ke sini. Lokal: docker network create web
   web:
     external: true
   # Network privat antar-service TaskFlow (backend ↔ frontend), tidak terekspos
   internal:
     driver: bridge
-  # Network bersama tempat PostgreSQL utama server berada.
-  # Nama diambil dari .env (DB_NETWORK). Backend join ke sini untuk akses DB.
-  database:
-    external: true
-    name: ${DB_NETWORK}
