@@ -6,10 +6,9 @@
 # TIDAK ikut menumpang — override ini menyediakan Postgres lokal sendiri
 # supaya database server tidak tersentuh saat ngoprek di lokal.
 #
-# Prasyarat sekali jalan (compose utama pakai 2 network eksternal):
+# Prasyarat sekali jalan (compose utama memakai network eksternal `web`):
 #   docker network create web
-#   docker network create taskflow_local_db      # samakan dengan DB_NETWORK di .env
-# Di .env lokal, set: DB_HOST=db  dan  DB_NETWORK=taskflow_local_db
+# Di .env lokal, set: DB_HOST=db  (Postgres lokal service di bawah, via network `internal`)
 # ═══════════════════════════════════════════════════════════════════════════
 
 services:
