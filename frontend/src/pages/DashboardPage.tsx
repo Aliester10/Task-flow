@@ -54,7 +54,7 @@ const DashboardPage: React.FC = () => {
             {/* Kanban Board Preview */}
             <div className="lg:col-span-2">
               <SectionCard title="KANBAN BOARD" headerColor="bg-neo-blue text-gray-900" action={{ label: '', to: '/projects' }}>
-                <div className="flex-1 p-4 bg-white grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 overflow-x-auto">
+                <div className="flex-1 p-4 bg-white flex overflow-x-auto gap-4 custom-scrollbar pb-6 snap-x">
                   <KanbanColumn title="TO DO" count={data.kanbanTasks.TODO.length} tasks={data.kanbanTasks.TODO} headerColor="bg-[#A3C8FF]" />
                   <KanbanColumn title="IN PROGRESS" count={data.kanbanTasks.IN_PROGRESS.length} tasks={data.kanbanTasks.IN_PROGRESS} headerColor="bg-neo-yellow" />
                   <KanbanColumn title="REVIEW" count={data.kanbanTasks.REVIEW.length} tasks={data.kanbanTasks.REVIEW} headerColor="bg-[#C5A3FF]" />
@@ -223,9 +223,9 @@ const StatCard: React.FC<{ label: string; value: number; icon: React.ReactNode; 
   };
 
   return (
-    <div className="bg-white border-3 border-gray-900 p-4 rounded-neo flex items-center justify-between" style={{ boxShadow: '4px 4px 0px 0px #1a1a1a' }}>
-      <div>
-        <p className="text-[10px] font-black uppercase text-gray-900 tracking-wider mb-1">{label}</p>
+    <div className="bg-white border-3 border-gray-900 p-4 rounded-neo flex items-center justify-between gap-2" style={{ boxShadow: '4px 4px 0px 0px #1a1a1a' }}>
+      <div className="min-w-0">
+        <p className="text-[10px] font-black uppercase text-gray-900 tracking-wider mb-1 truncate">{label}</p>
         <p className="text-3xl font-black text-gray-900 leading-none tabular-nums">{value}</p>
       </div>
       <div className={`w-10 h-10 ${colors[color]} border-2 border-gray-900 rounded-neo flex items-center justify-center flex-shrink-0`} style={{ boxShadow: '2px 2px 0px 0px #1a1a1a' }}>
@@ -252,7 +252,7 @@ const SectionCard: React.FC<{ title: string; headerColor: string; action?: { lab
 );
 
 const KanbanColumn: React.FC<{ title: string; count: number; tasks: any[]; headerColor: string }> = ({ title, count, tasks, headerColor }) => (
-  <div className="flex flex-col bg-gray-50 border-2 border-gray-900 rounded-neo h-full min-h-[350px]">
+  <div className="flex flex-col bg-gray-50 border-2 border-gray-900 rounded-neo h-full min-h-[350px] min-w-[280px] flex-1 snap-center">
     <div className={`flex items-center justify-between px-3 py-2 border-b-2 border-gray-900 ${headerColor}`}>
       <span className="font-black text-[11px] text-gray-900 uppercase">{title}</span>
       <span className="font-bold text-[11px] text-gray-900 bg-white px-1.5 rounded border border-gray-900">{count}</span>
