@@ -3,49 +3,18 @@
 # ───────────────────────────────────────────────────────────────────────────
 # File ini yang dipakai VPS via CI/CD. TIDAK ada `ports:` — semua ingress publik
 # lewat Traefik. Image ditarik dari ghcr.io (dibangun GitHub Actions).
-# Untuk dev lokal gunakan docker-compose.override.yml (otomatis ter-merge).
+#
+# DATABASE: TaskFlow MENUMPANG PostgreSQL utama server (bukan container sendiri).
+# Backend terhubung ke Postgres utama lewat network bersama (${DB_NETWORK}).
+# Isi DB_HOST, DB_NETWORK, POSTGRES_* di file .env (lihat .env.example).
+#
+# Untuk dev lokal gunakan docker-compose.override.yml (menyediakan Postgres lokal).
 # ═══════════════════════════════════════════════════════════════════════════
 
 services:
-  # ─── Database: PostgreSQL (internal, tidak terekspos publik) ───────────────
-  db:
-    image: postgres:15-alpine
-    container_name: taskflow_db
-    restart: unless-stopped
-    env_file:
-      - .env
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-    volumes:
-      - taskflow_db_data:/var/lib/postgresql/data
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    cap_add:
-      - CHOWN
-      - DAC_OVERRIDE
-      - FOWNER
-      - SETUID
-      - SETGID
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 512M
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-    networks:
-      - internal
-
   # ─── Backend: Express + Prisma + Socket.IO (internal) ──────────────────────
   # Tidak diekspos ke Traefik — diakses via reverse proxy nginx di service frontend.
+  # Terhubung ke 2 network: `internal` (ke frontend) & `database` (ke Postgres utama).
   backend:
     image: ghcr.io/aliester/taskflow-backend:latest
     build: ./backend
@@ -54,14 +23,11 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      DIRECT_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DB_HOST}:${DB_PORT:-5432}/${POSTGRES_DB}
+      DIRECT_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DB_HOST}:${DB_PORT:-5432}/${POSTGRES_DB}
       PORT: 5000
       NODE_ENV: production
       FRONTEND_URL: ${FRONTEND_URL}
-    depends_on:
-      db:
-        condition: service_healthy
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -85,6 +51,7 @@ services:
       start_period: 20s
     networks:
       - internal
+      - database
 
   # ─── Frontend: Nginx (SPA + reverse proxy /api & /socket.io) ───────────────
   # Satu-satunya service yang menghadap publik → terhubung ke network `web` (Traefik).
@@ -125,13 +92,15 @@ services:
       - web
       - internal
 
-volumes:
-  taskflow_db_data:
-
 networks:
   # Network publik milik Traefik (sudah dibuat di VPS). Lokal: docker network create web
   web:
     external: true
-  # Network privat antar-service (db ↔ backend ↔ frontend), tidak terekspos
+  # Network privat antar-service TaskFlow (backend ↔ frontend), tidak terekspos
   internal:
     driver: bridge
+  # Network bersama tempat PostgreSQL utama server berada.
+  # Nama diambil dari .env (DB_NETWORK). Backend join ke sini untuk akses DB.
+  database:
+    external: true
+    name: ${DB_NETWORK}
