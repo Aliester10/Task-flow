@@ -12,6 +12,7 @@ interface TaskState {
   updateTask: (projectId: string, taskId: string, data: Parameters<typeof taskService.update>[2]) => Promise<void>;
   deleteTask: (projectId: string, taskId: string) => Promise<void>;
   importTasks: (projectId: string, tasks: any[]) => Promise<number>;
+  updateCurrentTaskComments: (comments: any[]) => void;
   moveTask: (projectId: string, taskId: string, newStatus: TaskStatus, newOrder: number) => Promise<void>;
   updateTaskLocal: (taskId: string, data: Partial<Task>) => void;
   setCurrentTask: (task: Task | null) => void;
@@ -62,10 +63,8 @@ export const useTaskStore = create<TaskState>((set) => ({
   },
 
   importTasks: async (projectId, tasks) => {
-    const count = await taskService.importBulk(projectId, tasks);
-    // Reload tasks
-    const updatedTasks = await taskService.getAll(projectId);
-    set({ tasks: updatedTasks });
+    const { count, data } = await taskService.importBulk(projectId, tasks);
+    set((s) => ({ tasks: [...s.tasks, ...(data || [])] }));
     return count;
   },
 
@@ -79,6 +78,12 @@ export const useTaskStore = create<TaskState>((set) => ({
     } catch {
       // revert on error by re-fetching
     }
+  },
+
+  updateCurrentTaskComments: (comments) => {
+    set((s) => ({
+      currentTask: s.currentTask ? { ...s.currentTask, comments } : null,
+    }));
   },
 
   updateTaskLocal: (taskId, data) => {

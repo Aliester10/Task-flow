@@ -14,7 +14,7 @@ interface KanbanColumnProps {
   onAddTask: (status: TaskStatus) => void;
 }
 
-export const KanbanColumn: React.FC<KanbanColumnProps> = ({
+export const KanbanColumn: React.FC<KanbanColumnProps> = React.memo(({
   status, tasks, onTaskClick, onAddTask,
 }) => {
   const cfg = STATUS_STYLES[status];
@@ -95,4 +95,4 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
       </div>
     </div>
   );
-};
+});

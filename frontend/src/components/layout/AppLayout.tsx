@@ -16,8 +16,6 @@ export const AppLayout: React.FC = () => {
     if (token) {
       fetchNotifications();
       fetchProjects();
-      const interval = setInterval(fetchNotifications, 60_000);
-      return () => clearInterval(interval);
     }
   }, [token, fetchNotifications, fetchProjects]);
 

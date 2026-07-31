@@ -22,15 +22,17 @@ interface TaskDetailProps {
 
 export const TaskDetail: React.FC<TaskDetailProps> = ({ task, projectId, onEdit, onClose }) => {
   const { user } = useAuthStore();
-  const { fetchTask, currentTask } = useTaskStore();
+  const { fetchTask, currentTask, updateCurrentTaskComments } = useTaskStore();
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [deletingComment, setDeletingComment] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<'comments' | 'activity'>('comments');
 
   useEffect(() => {
-    fetchTask(projectId, task.id);
-  }, [task.id, projectId, fetchTask]);
+    if (currentTask?.id !== task.id) {
+      fetchTask(projectId, task.id);
+    }
+  }, [task.id, projectId, fetchTask, currentTask?.id]);
 
   const detail = currentTask?.id === task.id ? currentTask : task;
   const comments = detail.comments || [];
@@ -40,9 +42,9 @@ export const TaskDetail: React.FC<TaskDetailProps> = ({ task, projectId, onEdit,
     if (!comment.trim()) return;
     setSubmitting(true);
     try {
-      await taskService.addComment(projectId, task.id, comment.trim());
+      const newComment = await taskService.addComment(projectId, task.id, comment.trim());
+      updateCurrentTaskComments([...comments, newComment]);
       setComment('');
-      await fetchTask(projectId, task.id);
     } finally {
       setSubmitting(false);
     }
@@ -52,7 +54,7 @@ export const TaskDetail: React.FC<TaskDetailProps> = ({ task, projectId, onEdit,
     setDeletingComment(commentId);
     try {
       await taskService.deleteComment(projectId, task.id, commentId);
-      await fetchTask(projectId, task.id);
+      updateCurrentTaskComments(comments.filter((c: any) => c.id !== commentId));
     } finally {
       setDeletingComment(null);
     }

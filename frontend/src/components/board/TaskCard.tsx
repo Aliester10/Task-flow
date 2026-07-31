@@ -12,7 +12,7 @@ interface TaskCardProps {
   onClick: (task: Task) => void;
 }
 
-export const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
+export const TaskCard: React.FC<TaskCardProps> = React.memo(({ task, onClick }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
     data: { task },
@@ -104,4 +104,4 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
       </div>
     </div>
   );
-};
+});
