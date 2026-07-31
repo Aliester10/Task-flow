@@ -22,11 +22,14 @@ jobs:
           # 2. Pindah ke folder rilis VPS
           cd /srv/docker/apps/taskflow
 
-          # 3. Rakit ulang image secara lokal dan jalankan container
-          echo "Merakit (build) dan menyalakan aplikasi TaskFlow..."
-          docker compose up -d --build --remove-orphans
+          # 3. Hapus file override milik developer agar tidak mengganggu server
+          rm -f docker-compose.override.yml
 
-          # 4. Beri jeda untuk healthcheck, lalu verifikasi container berjalan
+          # 4. Rakit ulang image secara lokal dan jalankan container
+          echo "Merakit (build) dan menyalakan aplikasi TaskFlow..."
+          docker compose -f docker-compose.yml up -d --build --remove-orphans
+
+          # 5. Beri jeda untuk healthcheck, lalu verifikasi container berjalan
           echo "Deployment berhasil! Menunggu healthcheck..."
           sleep 15
           docker ps | grep taskflow
