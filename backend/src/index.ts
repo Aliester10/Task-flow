@@ -19,6 +19,11 @@ import { generalLimiter } from './middlewares/rateLimit.middleware';
 const app = express();
 const server = http.createServer(app);
 
+// Backend berjalan di belakang reverse proxy (nginx container frontend).
+// trust proxy = 1 hop agar req.ip membaca X-Forwarded-For dengan benar —
+// tanpa ini express-rate-limit akan membatasi berdasarkan IP nginx, bukan client.
+app.set('trust proxy', 1);
+
 const io = new SocketServer(server, {
   cors: {
     origin: process.env.FRONTEND_URL || 'http://localhost:5173',
