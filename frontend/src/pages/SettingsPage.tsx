@@ -59,14 +59,16 @@ const SettingsPage: React.FC = () => {
   };
 
   return (
-    <div className="p-6 lg:p-8 max-w-2xl mx-auto">
+    <div className="p-6 lg:p-8 max-w-7xl mx-auto">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Pengaturan Akun</h1>
         <p className="text-sm text-gray-500 mt-0.5 font-medium">Kelola profil dan keamanan akun Anda</p>
       </div>
 
-      {/* Profile Card */}
-      <div className="card mb-5 overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+        {/* Profile Column */}
+        <div className="lg:col-span-7 w-full">
+          <div className="card overflow-hidden">
         <div className="flex items-center gap-3 px-6 py-4 border-b-3 border-gray-900 bg-neo-blue/30">
           <div className="w-8 h-8 rounded-neo bg-neo-blue border-2 border-gray-900 flex items-center justify-center"
                style={{ boxShadow: '2px 2px 0px 0px #1a1a1a' }}>
@@ -114,9 +116,12 @@ const SettingsPage: React.FC = () => {
           </form>
         </div>
       </div>
+      </div>
 
-      {/* Password Card */}
-      <div className="card mb-5 overflow-hidden">
+      {/* Security Column */}
+      <div className="lg:col-span-5 flex flex-col gap-6 lg:gap-8 w-full">
+        {/* Password Card */}
+        <div className="card overflow-hidden">
         <div className="flex items-center gap-3 px-6 py-4 border-b-3 border-gray-900 bg-neo-yellow/30">
           <div className="w-8 h-8 rounded-neo bg-neo-yellow border-2 border-gray-900 flex items-center justify-center"
                style={{ boxShadow: '2px 2px 0px 0px #1a1a1a' }}>
@@ -131,7 +136,7 @@ const SettingsPage: React.FC = () => {
               <input id="cur-pass" type="password" {...rPw('currentPassword')} className="input" autoComplete="current-password" />
               {ePw.currentPassword && <p className="text-xs text-neo-red mt-1.5 font-bold">{ePw.currentPassword.message}</p>}
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4">
               <div>
                 <label className="label" htmlFor="new-pass">Password Baru</label>
                 <input id="new-pass" type="password" {...rPw('password')} className="input" placeholder="Min. 6 karakter" autoComplete="new-password" />
@@ -167,6 +172,8 @@ const SettingsPage: React.FC = () => {
             </button>
           </div>
         </div>
+      </div>
+      </div>
       </div>
     </div>
   );
