@@ -1,18 +1,102 @@
-version: '3.8'
+# ═══════════════════════════════════════════════════════════════════════════
+# TaskFlow — docker-compose PRODUCTION (patuh standarisasi.md VPS)
+# ───────────────────────────────────────────────────────────────────────────
+# File ini yang dipakai VPS via CI/CD. TIDAK ada `ports:` — semua ingress publik
+# lewat Traefik. Image ditarik dari ghcr.io (dibangun GitHub Actions).
+#
+# DATABASE: TaskFlow MENUMPANG PostgreSQL utama server (bukan container sendiri).
+# Postgres utama berada di network `web`; backend di-attach ke `web` agar bisa
+# mengaksesnya via host `postgres`. Isi DB_HOST, POSTGRES_* di .env (lihat .env.example).
+#
+# Untuk dev lokal gunakan docker-compose.override.yml (menyediakan Postgres lokal).
+# ═══════════════════════════════════════════════════════════════════════════
 
 services:
-  db:
-    image: postgres:15-alpine
-    container_name: taskflow_db
-    restart: always
+  # ─── Backend: Express + Prisma + Socket.IO (internal) ──────────────────────
+  # Tidak diekspos ke Traefik — diakses via reverse proxy nginx di service frontend.
+  # Terhubung ke 2 network: `internal` (ke frontend) & `web` (ke Postgres utama `postgres`).
+  backend:
+    image: ghcr.io/aliester/taskflow-backend:latest
+    build: ./backend
+    container_name: taskflow_backend
+    restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      POSTGRES_USER: taskflow_user
-      POSTGRES_PASSWORD: taskflow_password
-      POSTGRES_DB: taskflow_db
-    ports:
-      - "5433:5432"
-    volumes:
-      - taskflow_db_data:/var/lib/postgresql/data
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DB_HOST}:${DB_PORT:-5432}/${POSTGRES_DB}
+      DIRECT_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DB_HOST}:${DB_PORT:-5432}/${POSTGRES_DB}
+      PORT: 5000
+      NODE_ENV: production
+      FRONTEND_URL: ${FRONTEND_URL}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+    healthcheck:
+      # node:alpine tidak punya curl; wget tersedia via busybox.
+      # 127.0.0.1 (bukan localhost) agar tidak resolve ke ::1 yang tak di-listen.
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - internal
+      - web
 
-volumes:
-  taskflow_db_data:
+  # ─── Frontend: Nginx (SPA + reverse proxy /api & /socket.io) ───────────────
+  # Satu-satunya service yang menghadap publik → terhubung ke network `web` (Traefik).
+  frontend:
+    image: ghcr.io/aliester/taskflow-frontend:latest
+    build: ./frontend
+    container_name: taskflow_frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.taskflow.rule=Host(`taskflow.aliester.dev`)"
+      - "traefik.http.routers.taskflow.entrypoints=web"
+      - "traefik.http.services.taskflow.loadbalancer.server.port=80"
+    healthcheck:
+      # nginx:alpine menyertakan curl. 127.0.0.1 agar tidak resolve ke ::1.
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - web
+      - internal
+
+networks:
+  # Network publik Traefik + tempat PostgreSQL utama (`postgres`) berada.
+  # Backend & frontend join ke sini. Lokal: docker network create web
+  web:
+    external: true
+  # Network privat antar-service TaskFlow (backend ↔ frontend), tidak terekspos
+  internal:
+    driver: bridge
