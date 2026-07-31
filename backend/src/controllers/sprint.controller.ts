@@ -14,13 +14,7 @@ const sprintSchema = z.object({
 export const getSprints = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { projectId } = req.params;
-    const member = await prisma.projectMember.findUnique({
-      where: { projectId_userId: { projectId, userId: req.user!.id } },
-    });
-    if (!member) {
-      res.status(403).json({ success: false, error: 'Akses ditolak.' });
-      return;
-    }
+    const member = req.projectMember!;
 
     const sprints = await prisma.sprint.findMany({
       where: { projectId },
@@ -28,6 +22,7 @@ export const getSprints = async (req: AuthRequest, res: Response): Promise<void>
         tasks: {
           include: { assignee: { select: { id: true, name: true, email: true, avatarUrl: true } } },
           orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
+          take: 100,
         },
         _count: { select: { tasks: true } },
       },
@@ -51,10 +46,8 @@ export const getSprints = async (req: AuthRequest, res: Response): Promise<void>
 export const createSprint = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { projectId } = req.params;
-    const member = await prisma.projectMember.findUnique({
-      where: { projectId_userId: { projectId, userId: req.user!.id } },
-    });
-    if (!member || member.role !== 'OWNER') {
+    const member = req.projectMember!;
+    if (member.role !== 'OWNER') {
       res.status(403).json({ success: false, error: 'Hanya owner yang bisa membuat sprint.' });
       return;
     }
@@ -86,10 +79,8 @@ export const createSprint = async (req: AuthRequest, res: Response): Promise<voi
 export const updateSprint = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { projectId, sprintId } = req.params;
-    const member = await prisma.projectMember.findUnique({
-      where: { projectId_userId: { projectId, userId: req.user!.id } },
-    });
-    if (!member || member.role !== 'OWNER') {
+    const member = req.projectMember!;
+    if (member.role !== 'OWNER') {
       res.status(403).json({ success: false, error: 'Hanya owner yang bisa mengubah sprint.' });
       return;
     }
@@ -136,10 +127,8 @@ export const updateSprint = async (req: AuthRequest, res: Response): Promise<voi
 export const deleteSprint = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { projectId, sprintId } = req.params;
-    const member = await prisma.projectMember.findUnique({
-      where: { projectId_userId: { projectId, userId: req.user!.id } },
-    });
-    if (!member || member.role !== 'OWNER') {
+    const member = req.projectMember!;
+    if (member.role !== 'OWNER') {
       res.status(403).json({ success: false, error: 'Hanya owner yang bisa menghapus sprint.' });
       return;
     }
@@ -163,14 +152,7 @@ export const addTaskToSprint = async (req: AuthRequest, res: Response): Promise<
       res.status(400).json({ success: false, error: 'taskId wajib diisi.' });
       return;
     }
-
-    const member = await prisma.projectMember.findUnique({
-      where: { projectId_userId: { projectId, userId: req.user!.id } },
-    });
-    if (!member) {
-      res.status(403).json({ success: false, error: 'Akses ditolak.' });
-      return;
-    }
+    const member = req.projectMember!;
 
     const task = await prisma.task.update({
       where: { id: parsed.data.taskId },

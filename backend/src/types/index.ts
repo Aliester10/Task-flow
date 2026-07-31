@@ -1,5 +1,5 @@
 import { Request } from 'express';
-import { User } from '@prisma/client';
+import { User, ProjectMember } from '@prisma/client';
 
 export interface AuthRequest extends Request {
   user?: {
@@ -7,6 +7,7 @@ export interface AuthRequest extends Request {
     email: string;
     name: string;
   };
+  projectMember?: ProjectMember;
 }
 
 export interface JwtPayload {

@@ -29,13 +29,7 @@ export const getTasks = async (req: AuthRequest, res: Response): Promise<void> =
     const skip = (page - 1) * limit;
 
     // Pastikan user adalah member project
-    const member = await prisma.projectMember.findUnique({
-      where: { projectId_userId: { projectId, userId: req.user!.id } },
-    });
-    if (!member) {
-      res.status(403).json({ success: false, error: 'Akses ditolak.' });
-      return;
-    }
+    const member = req.projectMember!;
 
     const where: Record<string, unknown> = { projectId };
     if (status) where.status = status as TaskStatus;
@@ -80,14 +74,7 @@ export const getTask = async (req: AuthRequest, res: Response): Promise<void> =>
     // Pagination untuk activity logs
     const activityPage = Math.max(1, parseInt(req.query.activityPage as string) || 1);
     const activityLimit = Math.min(50, parseInt(req.query.activityLimit as string) || 20);
-
-    const member = await prisma.projectMember.findUnique({
-      where: { projectId_userId: { projectId, userId: req.user!.id } },
-    });
-    if (!member) {
-      res.status(403).json({ success: false, error: 'Akses ditolak.' });
-      return;
-    }
+    const member = req.projectMember!;
 
     // 1 query gabungan + 1 count untuk total activity logs
     const [task, totalActivityLogs] = await Promise.all([
@@ -135,13 +122,7 @@ export const getTask = async (req: AuthRequest, res: Response): Promise<void> =>
 export const createTask = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { projectId } = req.params;
-    const member = await prisma.projectMember.findUnique({
-      where: { projectId_userId: { projectId, userId: req.user!.id } },
-    });
-    if (!member) {
-      res.status(403).json({ success: false, error: 'Akses ditolak.' });
-      return;
-    }
+    const member = req.projectMember!;
 
     const parsed = taskSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -205,13 +186,7 @@ export const createTask = async (req: AuthRequest, res: Response): Promise<void>
 export const importTasks = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { projectId } = req.params;
-    const member = await prisma.projectMember.findUnique({
-      where: { projectId_userId: { projectId, userId: req.user!.id } },
-    });
-    if (!member) {
-      res.status(403).json({ success: false, error: 'Akses ditolak.' });
-      return;
-    }
+    const member = req.projectMember!;
 
     const parsed = z.array(taskSchema).safeParse(req.body);
     if (!parsed.success) {
@@ -241,11 +216,9 @@ export const importTasks = async (req: AuthRequest, res: Response): Promise<void
       order: currentOrder++,
     }));
 
-    // We can't use createMany and get the IDs back in Prisma SQLite (though we are on Postgres). 
-    // To support activityLogs for each, we create them in a transaction.
-    const createdTasks = await prisma.$transaction(
-      tasksToCreate.map((taskData) => prisma.task.create({ data: taskData }))
-    );
+    const createdTasks = await prisma.task.createManyAndReturn({
+      data: tasksToCreate
+    });
 
     // Create activity logs
     await prisma.activityLog.createMany({
@@ -259,7 +232,7 @@ export const importTasks = async (req: AuthRequest, res: Response): Promise<void
 
     await invalidateProjectCache(projectId);
 
-    res.status(201).json({ success: true, count: createdTasks.length });
+    res.status(201).json({ success: true, count: createdTasks.length, data: createdTasks });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, error: 'Terjadi kesalahan server saat import.' });
@@ -270,13 +243,7 @@ export const importTasks = async (req: AuthRequest, res: Response): Promise<void
 export const updateTask = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { projectId, taskId } = req.params;
-    const member = await prisma.projectMember.findUnique({
-      where: { projectId_userId: { projectId, userId: req.user!.id } },
-    });
-    if (!member) {
-      res.status(403).json({ success: false, error: 'Akses ditolak.' });
-      return;
-    }
+    const member = req.projectMember!;
 
     const parsed = taskSchema.partial().safeParse(req.body);
     if (!parsed.success) {
@@ -341,10 +308,8 @@ export const updateTask = async (req: AuthRequest, res: Response): Promise<void>
 export const deleteTask = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { projectId, taskId } = req.params;
-    const member = await prisma.projectMember.findUnique({
-      where: { projectId_userId: { projectId, userId: req.user!.id } },
-    });
-    if (!member || member.role !== 'OWNER') {
+    const member = req.projectMember!;
+    if (member.role !== 'OWNER') {
       res.status(403).json({ success: false, error: 'Hanya owner yang bisa menghapus task.' });
       return;
     }
@@ -382,14 +347,7 @@ export const reorderTasks = async (req: AuthRequest, res: Response): Promise<voi
     }
 
     const { taskId, newStatus, newOrder } = parsed.data;
-
-    const member = await prisma.projectMember.findUnique({
-      where: { projectId_userId: { projectId, userId: req.user!.id } },
-    });
-    if (!member) {
-      res.status(403).json({ success: false, error: 'Akses ditolak.' });
-      return;
-    }
+    const member = req.projectMember!;
 
     const existing = await prisma.task.findFirst({ where: { id: taskId, projectId } });
     if (!existing) {

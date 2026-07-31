@@ -2,10 +2,11 @@ import { Router } from 'express';
 import { getTasks, getTask, createTask, importTasks, updateTask, deleteTask, reorderTasks } from '../controllers/task.controller';
 import { createComment, deleteComment } from '../controllers/comment.controller';
 import { authMiddleware } from '../middlewares/auth.middleware';
+import { requireProjectMember } from '../middlewares/projectAccess.middleware';
 
 const router = Router({ mergeParams: true });
 
-router.use(authMiddleware);
+router.use(authMiddleware, requireProjectMember);
 
 router.get('/', getTasks);
 router.post('/', createTask);
