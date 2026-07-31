@@ -1,0 +1,19 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# DEV LOKAL — otomatis ter-merge saat `docker compose up` di mesin developer.
+# Menambah publish port ke host + build lokal. TIDAK dipakai di VPS
+# (CI/CD deploy memakai `-f docker-compose.yml` saja).
+#
+# Prasyarat sekali jalan (karena compose utama pakai network eksternal `web`):
+#   docker network create web
+# ═══════════════════════════════════════════════════════════════════════════
+
+services:
+  db:
+    ports:
+      # Akses DB dari host untuk psql / prisma studio saat dev
+      - "127.0.0.1:5433:5432"
+
+  frontend:
+    # Buka aplikasi di http://localhost:8080 saat dev
+    ports:
+      - "${APP_PORT:-8080}:80"
