@@ -15,10 +15,11 @@ model User {
   id        String   @id @default(cuid())
   name      String
   email     String   @unique
-  password  String
-  avatarUrl String?  @map("avatar_url")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  password     String
+  avatarUrl    String?  @map("avatar_url")
+  tokenVersion Int      @default(0) @map("token_version")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   ownedProjects   Project[]       @relation("ProjectOwner")
   projectMembers  ProjectMember[]
@@ -149,6 +150,7 @@ model ActivityLog {
 
 enum MemberRole {
   OWNER
+  ADMIN
   MEMBER
 }
 

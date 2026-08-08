@@ -5,6 +5,7 @@ import { AuthRequest } from '../types/index';
 import { TaskStatus } from '@prisma/client';
 import { io } from '../index';
 import { invalidateProjectCache } from '../utils/cache';
+import { sanitizeText } from '../utils/sanitize';
 
 const taskSchema = z.object({
   title: z.string().min(1, 'Judul task wajib diisi').max(200),
@@ -140,7 +141,7 @@ export const createTask = async (req: AuthRequest, res: Response): Promise<void>
     const task = await prisma.task.create({
       data: {
         title,
-        description,
+        description: description ? sanitizeText(description) : null,
         assigneeId: assigneeId || null,
         status: status || 'BACKLOG',
         priority: priority || 'MEDIUM',
@@ -205,7 +206,7 @@ export const importTasks = async (req: AuthRequest, res: Response): Promise<void
 
     const tasksToCreate = tasksData.map((task) => ({
       title: task.title,
-      description: task.description || null,
+      description: task.description ? sanitizeText(task.description) : null,
       assigneeId: task.assigneeId || null,
       status: task.status || 'TODO',
       priority: task.priority || 'MEDIUM',
@@ -263,7 +264,7 @@ export const updateTask = async (req: AuthRequest, res: Response): Promise<void>
       where: { id: taskId },
       data: {
         ...(title !== undefined && { title }),
-        ...(description !== undefined && { description }),
+        ...(description !== undefined && { description: description ? sanitizeText(description) : null }),
         ...(assigneeId !== undefined && { assigneeId: assigneeId || null }),
         ...(status !== undefined && { status }),
         ...(priority !== undefined && { priority }),
@@ -309,10 +310,6 @@ export const deleteTask = async (req: AuthRequest, res: Response): Promise<void>
   try {
     const { projectId, taskId } = req.params;
     const member = req.projectMember!;
-    if (member.role !== 'OWNER') {
-      res.status(403).json({ success: false, error: 'Hanya owner yang bisa menghapus task.' });
-      return;
-    }
 
     const task = await prisma.task.findFirst({ where: { id: taskId, projectId } });
     if (!task) {

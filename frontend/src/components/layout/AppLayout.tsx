@@ -21,8 +21,8 @@ export const AppLayout: React.FC = () => {
 
   useEffect(() => {
     if (token && user) {
+      socket.auth = { token };
       socket.connect();
-      socket.emit('authenticate', user.id);
 
       const handleNewNotification = (notif: any) => {
         addNotification(notif);
