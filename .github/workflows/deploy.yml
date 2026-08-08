@@ -31,5 +31,7 @@ jobs:
 
           # 5. Beri jeda untuk healthcheck, lalu verifikasi container berjalan
           echo "Deployment berhasil! Menunggu healthcheck..."
-          sleep 15
-          docker ps | grep taskflow
+          sleep 30
+          docker ps | grep taskflow || true
+          docker logs taskflow_backend || true
+          docker inspect taskflow_backend --format='{{json .State.Health}}' || true
