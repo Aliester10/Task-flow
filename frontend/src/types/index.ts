@@ -6,7 +6,7 @@ export interface User {
   createdAt: string;
 }
 
-export type MemberRole = 'OWNER' | 'MEMBER';
+export type MemberRole = 'OWNER' | 'ADMIN' | 'MEMBER';
 export type TaskStatus = 'BACKLOG' | 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE' | 'BLOCKED';
 export type Priority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 export type SprintStatus = 'PLANNED' | 'ACTIVE' | 'COMPLETED';

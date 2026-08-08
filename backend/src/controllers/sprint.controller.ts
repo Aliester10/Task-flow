@@ -47,10 +47,6 @@ export const createSprint = async (req: AuthRequest, res: Response): Promise<voi
   try {
     const { projectId } = req.params;
     const member = req.projectMember!;
-    if (member.role !== 'OWNER') {
-      res.status(403).json({ success: false, error: 'Hanya owner yang bisa membuat sprint.' });
-      return;
-    }
 
     const parsed = sprintSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -80,10 +76,6 @@ export const updateSprint = async (req: AuthRequest, res: Response): Promise<voi
   try {
     const { projectId, sprintId } = req.params;
     const member = req.projectMember!;
-    if (member.role !== 'OWNER') {
-      res.status(403).json({ success: false, error: 'Hanya owner yang bisa mengubah sprint.' });
-      return;
-    }
 
     const schema = z.object({
       name: z.string().min(1).max(100).optional(),
@@ -128,10 +120,6 @@ export const deleteSprint = async (req: AuthRequest, res: Response): Promise<voi
   try {
     const { projectId, sprintId } = req.params;
     const member = req.projectMember!;
-    if (member.role !== 'OWNER') {
-      res.status(403).json({ success: false, error: 'Hanya owner yang bisa menghapus sprint.' });
-      return;
-    }
 
     // Pindahkan task ke backlog
     await prisma.task.updateMany({ where: { sprintId }, data: { sprintId: null, status: 'BACKLOG' } });

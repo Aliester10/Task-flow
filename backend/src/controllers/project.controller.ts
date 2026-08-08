@@ -163,13 +163,6 @@ export const createProject = async (req: AuthRequest, res: Response): Promise<vo
 export const updateProject = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const member = await prisma.projectMember.findUnique({
-      where: { projectId_userId: { projectId: id, userId: req.user!.id } },
-    });
-    if (!member || member.role !== 'OWNER') {
-      res.status(403).json({ success: false, error: 'Hanya owner yang bisa mengubah project.' });
-      return;
-    }
 
     const schema = projectSchema.partial();
     const parsed = schema.safeParse(req.body);
@@ -206,8 +199,8 @@ export const deleteProject = async (req: AuthRequest, res: Response): Promise<vo
   try {
     const { id } = req.params;
     const project = await prisma.project.findUnique({ where: { id } });
-    if (!project || project.ownerId !== req.user!.id) {
-      res.status(403).json({ success: false, error: 'Hanya owner yang bisa menghapus project.' });
+    if (!project) {
+      res.status(404).json({ success: false, error: 'Project tidak ditemukan.' });
       return;
     }
 
@@ -227,8 +220,8 @@ export const archiveProject = async (req: AuthRequest, res: Response): Promise<v
   try {
     const { id } = req.params;
     const project = await prisma.project.findUnique({ where: { id } });
-    if (!project || project.ownerId !== req.user!.id) {
-      res.status(403).json({ success: false, error: 'Hanya owner yang bisa mengarsip project.' });
+    if (!project) {
+      res.status(404).json({ success: false, error: 'Project tidak ditemukan.' });
       return;
     }
     const updated = await prisma.project.update({ where: { id }, data: { isArchived: !project.isArchived } });
@@ -249,14 +242,6 @@ export const inviteMember = async (req: AuthRequest, res: Response): Promise<voi
     const parsed = schema.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ success: false, error: 'Email tidak valid.' });
-      return;
-    }
-
-    const member = await prisma.projectMember.findUnique({
-      where: { projectId_userId: { projectId: id, userId: req.user!.id } },
-    });
-    if (!member || member.role !== 'OWNER') {
-      res.status(403).json({ success: false, error: 'Hanya owner yang bisa mengundang member.' });
       return;
     }
 
@@ -303,13 +288,6 @@ export const inviteMember = async (req: AuthRequest, res: Response): Promise<voi
 export const removeMember = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id, userId } = req.params;
-    const member = await prisma.projectMember.findUnique({
-      where: { projectId_userId: { projectId: id, userId: req.user!.id } },
-    });
-    if (!member || member.role !== 'OWNER') {
-      res.status(403).json({ success: false, error: 'Hanya owner yang bisa menghapus member.' });
-      return;
-    }
     if (userId === req.user!.id) {
       res.status(400).json({ success: false, error: 'Owner tidak bisa menghapus dirinya sendiri.' });
       return;

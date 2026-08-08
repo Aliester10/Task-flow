@@ -60,6 +60,8 @@ const ProjectDetailPage: React.FC = () => {
 
   const project = currentProject;
   const isOwner = project.ownerId === user?.id;
+  const currentMember = project.members.find(m => m.userId === user?.id);
+  const isAdminOrOwner = isOwner || currentMember?.role === 'ADMIN';
 
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);
@@ -265,7 +267,7 @@ const ProjectDetailPage: React.FC = () => {
         )}
 
         {activeTab === 'members' && (
-          <MembersView project={project} isOwner={isOwner} onInvite={() => setShowInviteModal(true)} onRefresh={() => fetchProject(id!)} />
+          <MembersView project={project} canInvite={isAdminOrOwner} onInvite={() => setShowInviteModal(true)} onRefresh={() => fetchProject(id!)} />
         )}
       </div>
 
@@ -466,11 +468,11 @@ const SprintView: React.FC<{ projectId: string; project: { sprints?: { id: strin
   );
 };
 
-const MembersView: React.FC<{ project: { members: { id: string; user: { id: string; name: string; email: string; avatarUrl?: string | null }; role: string; joinedAt: string }[]; ownerId: string }; isOwner: boolean; onInvite: () => void; onRefresh: () => void }> = ({ project, isOwner, onInvite }) => (
+const MembersView: React.FC<{ project: { members: { id: string; user: { id: string; name: string; email: string; avatarUrl?: string | null }; role: string; joinedAt: string }[]; ownerId: string }; canInvite: boolean; onInvite: () => void; onRefresh: () => void }> = ({ project, canInvite, onInvite }) => (
   <div>
     <div className="flex items-center justify-between mb-4">
       <h2 className="font-bold text-gray-900 text-lg">{project.members.length} Member</h2>
-      {isOwner && (
+      {canInvite && (
         <button onClick={onInvite} className="btn-sm btn-primary gap-1.5"><UserPlus className="w-3.5 h-3.5" /> Undang</button>
       )}
     </div>
@@ -482,7 +484,7 @@ const MembersView: React.FC<{ project: { members: { id: string; user: { id: stri
             <p className="font-bold text-gray-900">{m.user.name}</p>
             <p className="text-sm text-gray-500 font-medium">{m.user.email}</p>
           </div>
-          <span className={`badge ${m.role === 'OWNER' ? 'bg-neo-yellow' : 'bg-gray-100'}`}>
+          <span className={`badge ${m.role === 'OWNER' ? 'bg-neo-yellow' : m.role === 'ADMIN' ? 'bg-neo-purple text-white' : 'bg-gray-100'}`}>
             {m.role}
           </span>
         </div>
