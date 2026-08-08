@@ -5,6 +5,8 @@ import http from 'http';
 import { Server as SocketServer } from 'socket.io';
 import helmet from 'helmet';
 import compression from 'compression';
+import cookieParser from 'cookie-parser';
+import jwt from 'jsonwebtoken';
 
 import authRoutes from './routes/auth.routes';
 import projectRoutes from './routes/project.routes';
@@ -45,6 +47,7 @@ app.use(compression());
 app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173', credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // General rate limiter — hanya cover /api/* routes, tidak menyentuh Socket.IO
 // Socket.IO handshake berjalan di /socket.io/* yang dikelola http server langsung,
@@ -69,14 +72,32 @@ app.use((_req, res) => {
   res.status(404).json({ success: false, error: 'Endpoint tidak ditemukan.' });
 });
 
-// Socket.io — realtime update board
-io.on('connection', (socket) => {
-  console.log(`🔌 Socket connected: ${socket.id}`);
+// Global Error Handler
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('[UnhandledError]', err);
+  res.status(500).json({ success: false, error: 'Internal server error.' });
+});
 
-  socket.on('authenticate', (userId: string) => {
-    socket.join(`user:${userId}`);
-    console.log(`Socket ${socket.id} joined user:${userId}`);
-  });
+// Socket.io middleware - realtime authentication
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token;
+  if (!token) return next(new Error('Authentication error'));
+  
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { id: string };
+    socket.data.userId = decoded.id;
+    next();
+  } catch (err) {
+    next(new Error('Authentication error'));
+  }
+});
+
+io.on('connection', (socket) => {
+  console.log(`🔌 Socket connected: ${socket.id} for user: ${socket.data.userId}`);
+
+  // Automatically join user room on connection based on token data
+  socket.join(`user:${socket.data.userId}`);
+  console.log(`Socket ${socket.id} joined user:${socket.data.userId}`);
 
   socket.on('join-project', (projectId: string) => {
     socket.join(`project:${projectId}`);
@@ -139,3 +160,9 @@ async function shutdown(signal: string): Promise<void> {
 
 process.on('SIGTERM', () => shutdown('SIGTERM')); // signal dari container/PM2/systemd
 process.on('SIGINT',  () => shutdown('SIGINT'));  // Ctrl+C saat development
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[UnhandledRejection] Unhandled Rejection at:', promise, 'reason:', reason);
+  // Do not exit process immediately, let global error handler or other logic handle if needed,
+  // or depending on the crash severity, we might want to shut down.
+});
