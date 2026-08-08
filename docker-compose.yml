@@ -78,6 +78,7 @@ services:
           memory: 256M
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=web"
       - "traefik.http.routers.taskflow.rule=Host(`taskflow.aliester.dev`)"
       - "traefik.http.routers.taskflow.entrypoints=web"
       - "traefik.http.services.taskflow.loadbalancer.server.port=80"
