@@ -16,12 +16,33 @@ const loginSchema = z.object({
   password: z.string().min(1, 'Password wajib diisi'),
 });
 
-function generateToken(user: { id: string; email: string; name: string }): string {
+const ACCESS_TOKEN_EXPIRY = process.env.JWT_EXPIRES_IN || '15m';
+const REFRESH_TOKEN_EXPIRY = '7d';
+const REFRESH_TOKEN_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+function generateAccessToken(user: { id: string; email: string; name: string }): string {
   return jwt.sign(
     { id: user.id, email: user.email, name: user.name },
     process.env.JWT_SECRET!,
-    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' } as jwt.SignOptions
+    { expiresIn: ACCESS_TOKEN_EXPIRY } as jwt.SignOptions
   );
+}
+
+function generateRefreshToken(user: { id: string; tokenVersion: number }): string {
+  return jwt.sign(
+    { id: user.id, tokenVersion: user.tokenVersion },
+    process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET!,
+    { expiresIn: REFRESH_TOKEN_EXPIRY } as jwt.SignOptions
+  );
+}
+
+function setRefreshTokenCookie(res: Response, token: string) {
+  res.cookie('refreshToken', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: REFRESH_TOKEN_MAX_AGE_MS,
+  });
 }
 
 export const register = async (req: Request, res: Response): Promise<void> => {
@@ -43,11 +64,16 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     const hashed = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
       data: { name, email, password: hashed },
-      select: { id: true, name: true, email: true, avatarUrl: true, createdAt: true },
+      select: { id: true, name: true, email: true, avatarUrl: true, createdAt: true, tokenVersion: true },
     });
 
-    const token = generateToken({ id: user.id, email: user.email, name: user.name });
-    res.status(201).json({ success: true, data: { user, token } });
+    const token = generateAccessToken({ id: user.id, email: user.email, name: user.name });
+    const refreshToken = generateRefreshToken({ id: user.id, tokenVersion: user.tokenVersion });
+    
+    setRefreshTokenCookie(res, refreshToken);
+    
+    const { tokenVersion: _, ...safeUser } = user;
+    res.status(201).json({ success: true, data: { user: safeUser, token } });
   } catch (err) {
     console.error('Register error:', err);
     res.status(500).json({ success: false, error: 'Terjadi kesalahan server.' });
@@ -75,12 +101,59 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const token = generateToken({ id: user.id, email: user.email, name: user.name });
-    const { password: _, ...safeUser } = user;
+    const token = generateAccessToken({ id: user.id, email: user.email, name: user.name });
+    const refreshToken = generateRefreshToken({ id: user.id, tokenVersion: user.tokenVersion });
+    
+    setRefreshTokenCookie(res, refreshToken);
+
+    const { password: _, tokenVersion: __, ...safeUser } = user;
     res.json({ success: true, data: { user: safeUser, token } });
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ success: false, error: 'Terjadi kesalahan server.' });
+  }
+};
+
+export const logout = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (req.user) {
+      await prisma.user.update({
+        where: { id: req.user.id },
+        data: { tokenVersion: { increment: 1 } },
+      });
+    }
+    res.clearCookie('refreshToken');
+    res.json({ success: true, message: 'Logged out successfully.' });
+  } catch (err) {
+    console.error('Logout error:', err);
+    res.status(500).json({ success: false, error: 'Terjadi kesalahan server.' });
+  }
+};
+
+export const refresh = async (req: Request, res: Response): Promise<void> => {
+  const token = req.cookies.refreshToken;
+  if (!token) {
+    res.status(401).json({ success: false, error: 'Refresh token tidak ditemukan.' });
+    return;
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET!) as { id: string; tokenVersion: number };
+    
+    const user = await prisma.user.findUnique({ where: { id: decoded.id } });
+    if (!user || user.tokenVersion !== decoded.tokenVersion) {
+      res.status(401).json({ success: false, error: 'Refresh token tidak valid atau sudah ditarik.' });
+      return;
+    }
+
+    const newToken = generateAccessToken({ id: user.id, email: user.email, name: user.name });
+    const newRefreshToken = generateRefreshToken({ id: user.id, tokenVersion: user.tokenVersion });
+    
+    setRefreshTokenCookie(res, newRefreshToken);
+    
+    res.json({ success: true, data: { token: newToken } });
+  } catch (err) {
+    res.status(401).json({ success: false, error: 'Refresh token tidak valid atau kadaluarsa.' });
   }
 };
 
@@ -115,7 +188,7 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
     }
 
     const { name, avatarUrl, password, currentPassword } = parsed.data;
-    const updateData: Record<string, string | null> = {};
+    const updateData: any = {};
 
     if (name) updateData.name = name;
     if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
@@ -136,6 +209,7 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
         return;
       }
       updateData.password = await bcrypt.hash(password, 10);
+      updateData.tokenVersion = { increment: 1 }; // invalidate refresh tokens when password changes
     }
 
     const updated = await prisma.user.update({
@@ -143,6 +217,15 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
       data: updateData,
       select: { id: true, name: true, email: true, avatarUrl: true, createdAt: true },
     });
+    
+    // If password changed, we need to return new refresh token
+    if (password) {
+      const updatedUser = await prisma.user.findUnique({ where: { id: req.user!.id } });
+      if (updatedUser) {
+        const refreshToken = generateRefreshToken({ id: updatedUser.id, tokenVersion: updatedUser.tokenVersion });
+        setRefreshTokenCookie(res, refreshToken);
+      }
+    }
 
     res.json({ success: true, data: updated });
   } catch (err) {
