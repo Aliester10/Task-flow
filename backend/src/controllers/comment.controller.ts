@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '../prisma/client';
 import { AuthRequest } from '../types/index';
 import { io } from '../index';
+import { sanitizeText } from '../utils/sanitize';
 
 // POST /projects/:projectId/tasks/:taskId/comments
 export const createComment = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -29,14 +30,16 @@ export const createComment = async (req: AuthRequest, res: Response): Promise<vo
       return;
     }
 
+    const sanitizedContent = sanitizeText(parsed.data.content);
+
     const comment = await prisma.comment.create({
-      data: { taskId, userId: req.user!.id, content: parsed.data.content },
+      data: { taskId, userId: req.user!.id, content: sanitizedContent },
       include: { user: { select: { id: true, name: true, email: true, avatarUrl: true } } },
     });
 
     // Log aktivitas
     await prisma.activityLog.create({
-      data: { taskId, userId: req.user!.id, action: 'commented', newValue: parsed.data.content.slice(0, 100) },
+      data: { taskId, userId: req.user!.id, action: 'commented', newValue: sanitizedContent.slice(0, 100) },
     });
 
     // Notifikasi ke assignee jika ada dan bukan diri sendiri
