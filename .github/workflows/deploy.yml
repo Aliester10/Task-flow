@@ -27,7 +27,12 @@ jobs:
 
           # 4. Rakit ulang image secara lokal dan jalankan container
           echo "Merakit (build) dan menyalakan aplikasi TaskFlow..."
-          docker compose -f docker-compose.yml up -d --build --remove-orphans
+          docker compose -f docker-compose.yml up -d --build --remove-orphans || {
+            echo "Compose up failed! Printing logs before exiting..."
+            docker logs taskflow_backend || true
+            docker inspect taskflow_backend --format='{{json .State.Health}}' || true
+            exit 1
+          }
 
           # 5. Beri jeda untuk healthcheck, lalu verifikasi container berjalan
           echo "Deployment berhasil! Menunggu healthcheck..."
