@@ -57,7 +57,10 @@ services:
   # Satu-satunya service yang menghadap publik → terhubung ke network `web` (Traefik).
   frontend:
     image: ghcr.io/aliester/taskflow-frontend:latest
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
     container_name: taskflow_frontend
     restart: unless-stopped
     depends_on:

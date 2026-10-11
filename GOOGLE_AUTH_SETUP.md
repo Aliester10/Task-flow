@@ -61,6 +61,17 @@ Referensi: [setup Google Identity Services](https://developers.google.com/identi
 
 ## Deploy ke server atau hosting
 
+### VPS TaskFlow saat ini (Docker Compose)
+
+1. Di Google Auth Platform → **Clients**, buka Web Client ID yang dipakai TaskFlow. Tambahkan `https://taskflow.aliester.dev` ke **Authorized JavaScript origins** (tanpa `/login` atau garis miring di akhir). Untuk pengujian lokal, tambahkan juga `http://localhost:5173`; jika memakai Docker Compose lokal, tambahkan `http://localhost:8080`.
+2. Di server, isi `GOOGLE_CLIENT_ID=<Web Client ID>` pada `/srv/docker/apps/taskflow/.env`. Gunakan Client ID yang sama dengan pengembangan lokal. Tidak perlu menyimpan Client Secret untuk alur login ini.
+3. Jalankan ulang deployment dari branch `main` atau, dari direktori `/srv/docker/apps/taskflow`, jalankan `docker compose -f docker-compose.yml up -d --build`. Compose meneruskan `GOOGLE_CLIENT_ID` ke backend dan memasukkannya sebagai `VITE_GOOGLE_CLIENT_ID` pada saat frontend dibangun. File `.env` server tidak ikut Git dan akan tetap dipakai pada deployment berikutnya.
+4. Buka `https://taskflow.aliester.dev/login` dan coba tombol Google. Backend Dockerfile menjalankan `prisma migrate deploy` sebelum server dimulai, sehingga database dan kredensial PostgreSQL di `.env` server harus benar.
+
+Jika tombol masih bertuliskan **Opsi Google belum tersedia**, periksa nilai `GOOGLE_CLIENT_ID` di `.env` server lalu bangun ulang image frontend. Restart container saja tidak cukup karena Vite menyisipkan Client ID pada saat build. Jika Google melaporkan origin tidak diizinkan, periksa Authorized JavaScript origins. Jika TaskFlow melaporkan login Google belum dikonfigurasi, periksa variabel pada container backend.
+
+### Hosting lain
+
 File `.env` lokal tidak dikirim oleh Git. Masukkan nilai berikut **sekali** di pengaturan Environment Variables atau Secrets milik platform hosting. Platform akan menyuntikkannya lagi pada build dan deploy berikutnya.
 
 | Tempat | Variabel | Nilai |

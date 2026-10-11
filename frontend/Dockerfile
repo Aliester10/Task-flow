@@ -7,6 +7,7 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
+ARG VITE_GOOGLE_CLIENT_ID
 RUN npm run build
 
 # ─── Stage 2: Serve via Nginx ────────────────────────────────────────────────
