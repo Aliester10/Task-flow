@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { Zap, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { useAuthStore } from '../store/auth.store';
 import { Spinner } from '../components/ui/Spinner';
+import { GoogleSignInButton } from '../components/auth/GoogleSignInButton';
 
 const schema = z.object({
   name: z.string().min(2, 'Nama minimal 2 karakter'),
@@ -19,7 +20,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 const RegisterPage: React.FC = () => {
-  const { register: registerUser, isLoading } = useAuthStore();
+  const { register: registerUser, googleLogin, isLoading } = useAuthStore();
   const navigate = useNavigate();
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
@@ -36,6 +37,17 @@ const RegisterPage: React.FC = () => {
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
       setError(msg || 'Registrasi gagal. Coba lagi.');
+    }
+  };
+
+  const onGoogleCredential = async (credential: string) => {
+    try {
+      setError('');
+      await googleLogin(credential);
+      navigate('/dashboard');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      setError(msg || 'Pendaftaran dengan Google gagal. Coba lagi.');
     }
   };
 
@@ -119,6 +131,8 @@ const RegisterPage: React.FC = () => {
             </button>
           </form>
         </div>
+
+        <GoogleSignInButton onCredential={onGoogleCredential} text="signup_with" />
 
         <p className="text-center text-sm text-gray-500 mt-5 font-medium">
           Sudah punya akun?{' '}

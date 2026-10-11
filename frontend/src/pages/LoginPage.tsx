@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { Zap, Eye, EyeOff, ArrowRight, CheckCircle } from 'lucide-react';
 import { useAuthStore } from '../store/auth.store';
 import { Spinner } from '../components/ui/Spinner';
+import { GoogleSignInButton } from '../components/auth/GoogleSignInButton';
 
 const schema = z.object({
   email: z.string().email('Email tidak valid'),
@@ -21,7 +22,7 @@ const FEATURES = [
 ];
 
 const LoginPage: React.FC = () => {
-  const { login, isLoading } = useAuthStore();
+  const { login, googleLogin, isLoading } = useAuthStore();
   const navigate = useNavigate();
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
@@ -38,6 +39,17 @@ const LoginPage: React.FC = () => {
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
       setError(msg || 'Email atau password salah.');
+    }
+  };
+
+  const onGoogleCredential = async (credential: string) => {
+    try {
+      setError('');
+      await googleLogin(credential);
+      navigate('/dashboard');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      setError(msg || 'Login dengan Google gagal. Coba lagi.');
     }
   };
 
@@ -181,6 +193,8 @@ const LoginPage: React.FC = () => {
               )}
             </button>
           </form>
+
+          <GoogleSignInButton onCredential={onGoogleCredential} text="signin_with" />
 
           <p className="text-center text-sm text-gray-500 mt-6 font-medium">
             Belum punya akun?{' '}

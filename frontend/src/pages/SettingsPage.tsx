@@ -7,6 +7,7 @@ import { useAuthStore } from '../store/auth.store';
 import { authService } from '../services/auth.service';
 import { Avatar } from '../components/ui/Avatar';
 import { Spinner } from '../components/ui/Spinner';
+import { GoogleSignInButton } from '../components/auth/GoogleSignInButton';
 
 const profileSchema = z.object({
   name: z.string().min(2, 'Nama minimal 2 karakter'),
@@ -29,6 +30,7 @@ const SettingsPage: React.FC = () => {
   const [passErr, setPassErr] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPass, setSavingPass] = useState(false);
+  const [googleErr, setGoogleErr] = useState('');
 
   const { register: rP, handleSubmit: hsP, formState: { errors: eP } } = useForm<ProfileData>({
     resolver: zodResolver(profileSchema),
@@ -56,6 +58,16 @@ const SettingsPage: React.FC = () => {
     } catch (err: unknown) {
       setPassErr((err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Gagal mengubah password.');
     } finally { setSavingPass(false); }
+  };
+
+  const onGoogleCredential = async (credential: string) => {
+    setGoogleErr('');
+    try {
+      const updated = await authService.linkGoogle(credential);
+      updateUser(updated);
+    } catch (err: unknown) {
+      setGoogleErr((err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Gagal menghubungkan akun Google.');
+    }
   };
 
   return (
@@ -120,8 +132,25 @@ const SettingsPage: React.FC = () => {
 
       {/* Security Column */}
       <div className="lg:col-span-5 flex flex-col gap-6 lg:gap-8 w-full">
-        {/* Password Card */}
-        <div className="card overflow-hidden">
+      <div className="card overflow-hidden">
+        <div className="px-6 py-4 border-b-3 border-gray-900 bg-neo-lime/30">
+          <h2 className="text-sm font-bold text-gray-900">Akun Google</h2>
+        </div>
+        <div className="p-6">
+          {user?.googleLinked ? (
+            <p className="text-sm font-medium text-gray-700">Akun Google sudah terhubung. Anda dapat masuk dengan Google.</p>
+          ) : (
+            <>
+              <p className="text-sm font-medium text-gray-700">Hubungkan akun Google dengan email yang sama agar dapat masuk tanpa password.</p>
+              <GoogleSignInButton onCredential={onGoogleCredential} showDivider={false} />
+              {googleErr && <p className="text-xs text-neo-red font-bold mt-2" role="alert">{googleErr}</p>}
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Password Card */}
+      {user?.hasPassword !== false && <div className="card overflow-hidden">
         <div className="flex items-center gap-3 px-6 py-4 border-b-3 border-gray-900 bg-neo-yellow/30">
           <div className="w-8 h-8 rounded-neo bg-neo-yellow border-2 border-gray-900 flex items-center justify-center"
                style={{ boxShadow: '2px 2px 0px 0px #1a1a1a' }}>
@@ -154,7 +183,7 @@ const SettingsPage: React.FC = () => {
             </button>
           </form>
         </div>
-      </div>
+      </div>}
 
       {/* Danger zone */}
       <div className="card overflow-hidden border-neo-red">
