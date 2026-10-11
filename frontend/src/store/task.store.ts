@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { Task, TaskStatus } from '../types';
 import { taskService } from '../services/task.service';
 
+let latestFetchId = 0;
+
 interface TaskState {
   tasks: Task[];
   currentTask: Task | null;
@@ -25,12 +27,13 @@ export const useTaskStore = create<TaskState>((set) => ({
   isLoading: false,
 
   fetchTasks: async (projectId, params) => {
+    const fetchId = ++latestFetchId;
     set({ isLoading: true });
     try {
       const tasks = await taskService.getAll(projectId, params);
-      set({ tasks, isLoading: false });
+      if (fetchId === latestFetchId) set({ tasks, isLoading: false });
     } catch {
-      set({ isLoading: false });
+      if (fetchId === latestFetchId) set({ isLoading: false });
     }
   },
 
@@ -95,5 +98,8 @@ export const useTaskStore = create<TaskState>((set) => ({
 
   setCurrentTask: (task) => set({ currentTask: task }),
 
-  clearTasks: () => set({ tasks: [], currentTask: null }),
+  clearTasks: () => {
+    latestFetchId += 1;
+    set({ tasks: [], currentTask: null, isLoading: false });
+  },
 }));

@@ -49,7 +49,7 @@ export const getTasks = async (req: AuthRequest, res: Response): Promise<void> =
           assignee: { select: { id: true, name: true, email: true, avatarUrl: true } },
           _count: { select: { comments: true } },
         },
-        orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
+        orderBy: [{ order: 'asc' }, { createdAt: 'desc' }, { id: 'asc' }],
         skip,
         take: limit,
       }),

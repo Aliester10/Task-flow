@@ -3,8 +3,22 @@ import { Task, TaskStatus, Priority } from '../types';
 
 export const taskService = {
   getAll: async (projectId: string, params?: { status?: TaskStatus; assigneeId?: string; sprintId?: string; search?: string }) => {
-    const res = await api.get<{ success: boolean; data: Task[] }>(`/projects/${projectId}/tasks`, { params });
-    return res.data.data!;
+    const tasks: Task[] = [];
+    let page = 1;
+    let totalPages = 1;
+
+    do {
+      const res = await api.get<{
+        success: boolean;
+        data: Task[];
+        pagination: { totalPages: number };
+      }>(`/projects/${projectId}/tasks`, { params: { ...params, page, limit: 100 } });
+      tasks.push(...res.data.data);
+      totalPages = res.data.pagination.totalPages;
+      page += 1;
+    } while (page <= totalPages);
+
+    return tasks;
   },
   getById: async (projectId: string, taskId: string) => {
     const res = await api.get<{ success: boolean; data: Task }>(`/projects/${projectId}/tasks/${taskId}`);
