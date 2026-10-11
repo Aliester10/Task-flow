@@ -23,4 +23,4 @@ export interface ApiResponse<T = unknown> {
   error?: string;
 }
 
-export type SafeUser = Omit<User, 'password'>;
+export type SafeUser = Omit<User, 'password' | 'googleId'> & { hasPassword: boolean; googleLinked: boolean };
