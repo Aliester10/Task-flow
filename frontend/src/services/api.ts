@@ -33,8 +33,9 @@ api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const originalRequest = error.config;
+    const authAttempt = ['/auth/login', '/auth/register', '/auth/google', '/auth/google/link'].includes(originalRequest?.url);
     
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && !authAttempt && !originalRequest?._retry) {
       if (isRefreshing) {
         return new Promise(function(resolve, reject) {
           failedQueue.push({ resolve, reject });

@@ -4,6 +4,8 @@ export interface User {
   email: string;
   avatarUrl?: string | null;
   createdAt: string;
+  hasPassword?: boolean;
+  googleLinked?: boolean;
 }
 
 export type MemberRole = 'OWNER' | 'ADMIN' | 'MEMBER';

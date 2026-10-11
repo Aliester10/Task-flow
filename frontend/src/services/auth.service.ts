@@ -10,6 +10,14 @@ export const authService = {
     const res = await api.post<{ success: boolean; data: { user: User; token: string } }>('/auth/login', data);
     return res.data.data!;
   },
+  googleLogin: async (credential: string) => {
+    const res = await api.post<{ success: boolean; data: { user: User; token: string } }>('/auth/google', { credential });
+    return res.data.data!;
+  },
+  linkGoogle: async (credential: string) => {
+    const res = await api.post<{ success: boolean; data: User }>('/auth/google/link', { credential });
+    return res.data.data!;
+  },
   getMe: async () => {
     const res = await api.get<{ success: boolean; data: User }>('/auth/me');
     return res.data.data!;

@@ -8,6 +8,7 @@ interface AuthState {
   token: string | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  googleLogin: (credential: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   updateUser: (user: User) => void;
@@ -25,6 +26,18 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true });
         try {
           const { user, token } = await authService.login({ email, password });
+          localStorage.setItem('taskflow_token', token);
+          set({ user, token, isLoading: false });
+        } catch (err) {
+          set({ isLoading: false });
+          throw err;
+        }
+      },
+
+      googleLogin: async (credential) => {
+        set({ isLoading: true });
+        try {
+          const { user, token } = await authService.googleLogin(credential);
           localStorage.setItem('taskflow_token', token);
           set({ user, token, isLoading: false });
         } catch (err) {
